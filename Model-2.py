@@ -73,7 +73,7 @@ def constr_C_D_temp(model, i):
     return model.C[i] == D[i] + temp
 model.constr_C_D_temp = Constraint(model.IndexSet, rule=constr_C_D_temp)
 
-model.const.add(C[i]== D[i]+ )
+model.const.add(model.C[i]== D[i] )
 
 
 # Set objective
@@ -102,12 +102,11 @@ print(value(model.obj))
 u0_values = [value(model.u0[i]) for i in model.IndexSet]
  
 is_start_values = [value(model.is_start[i]) for i in model.IndexSet]
-#SOC_percent = [val * 100 for val in SOC_values]
 
 
 # Create x-axis values (assuming index set)
-x_values = list(range(len(u0_values)))
-PV__values = list(range(len(PV)))
+x_values = list(range(0, len(u0_values)))
+PV__values = list(range(0, n))
 
 #Declare Rows, columns and Figure size of subplots
 fig, axs = plt.subplots(nrows=1, ncols=1, figsize=(10, 10))
@@ -118,16 +117,6 @@ axs[0].plot(x_values, u1_values, label='Battery Charge')
 axs[0].plot(x_values, u2_values, label='Battery Discharge')
 axs[0].set_title('PV to Demand, Battery Charge and Discharge')
 
-
-# Plot on the second subplot
-
-axs[1].plot(x_values, SOC_percent)
-axs[1].set_title('State of Charge in % ')
-
-# Plot on the third subplot
-axs[2].plot(PV__values, PV, label='Power Generation' )
-axs[2].plot(PV__values, Consumption, label='Consumption' )
-axs[2].set_title('Power Generation & Consumption')
 
 # Add legend to the first subplot
 axs[0].legend()
