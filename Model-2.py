@@ -23,7 +23,7 @@ model = ConcreteModel()
 
 Gen_neg = pv_data[1].to_list()
 PV =  [- x for x in Gen_neg]       
-Consumption = [1000.0] * len(PV)    #consumption
+D = [1000.0] * len(PV)    #consumption
 
 #Define Buy and Sell price
 priceImport = 0.23 / 1000 / 60
@@ -31,15 +31,16 @@ priceExport = 0.06 / 1000 / 60
 Cbat = 5000 * 60       #Capacity of the Battery
 eff = 0.9              #Efficiency of the Battery
 h = 1.0
-n= len(PV)
+n = len(PV)
 # Create variables in the model
-model.IndexSet = RangeSet(0, n)
+model.IndexSet = RangeSet(0,len(PV))
 
 
 # Initialize indexed variables
 model.u0 = Var(model.IndexSet, bounds=(0, 1e20), within = Reals, initialize = 0)
 model.C = Var(model.IndexSet,bounds =(0, 1e20), within = NonNegativeReals, initialize = 0)
-model.is_start = Var(model.IndexSet, bounds=(0, 1), within = Binary, initialize = 1)
+model.is_start = Var(model.IndexSet, bounds=(0, 1), within = Binary)
+model.bin = Var(model.IndexSet, bounds=(0, 1), within = Binary)
 
 
 # Add constraints
@@ -47,38 +48,44 @@ model.const = ConstraintList()
 
 
 #Loop 0 to n-1
-for i in range(0, len(PV)):
+for i in range(0, n):
 
     model.const.add(model.u0[i] - PV[i] <= 0)
-    model.const.add(model.u0[i] - Consumption[i] <= 0)
+    model.const.add(model.u0[i] - model.C[i] <= 0)
+    model.const.add(model.is_start[i] >= 0.5 if model.bin[i] == 1 else Constraint.Skip)
+    model.const.add(model.is_start[i] <= 0.5 if model.bin[i] == 0 else Constraint.Skip)
    
     
     
 
 # Loop 0 to n-2
-for i in range(0, (len(PV)-1)):
+for i in range(0, n):
 
     model.const.add(sum(model.is_start[i] == 1 ))
 
-    for n in range(n-len(PV),n) : #Define n
-       model.is_start==0
-    
-    for j in range(0, len(PV)):
-        model.const.add(model.C[i] == Consumption[i] + sum(wm_data[i]))
 
-      
+for i in range(n - l, n):
+    model.const.add(model.is_start[i] == 0)
+
+# Additional constraints based on nested sums
+def constr_C_D_temp(model, i):
+    temp = sum(model.bin[i-j] * device[0][j] for j in range(min(i+1, l)))
+    return model.C[i] == D[i] + temp
+model.constr_C_D_temp = Constraint(model.IndexSet, rule=constr_C_D_temp)
+
+model.const.add(C[i]== D[i]+ )
 
 
 # Set objective
 def objective_rule(model):
     return sum(
-        (model.D[i] - model.u0[i] - model.u2[i]) * priceImport - (PV[i] - model.u0[i] - model.u1[i]) * priceExport 
-        for i in range(len(PV))
+        (model.C[i] - model.u0[i]) * priceImport - (PV[i] - model.u0[i]) * priceExport 
+        for i in range(0, n)
     )
 model.obj = Objective(rule=objective_rule, sense=minimize)
 
 # Solve the model...
-solver = SolverFactory('scip')
+solver = SolverFactory('gurobi')
 solver.options['NonConvex'] = 2  # Set NonConvex parameter to 2
 results = solver.solve(model, tee=True)
 #model.display()
@@ -88,16 +95,14 @@ print(value(model.obj))
 
 
 
-
+'''
 ####### PLot #######
 
 #Extract values of u0, u1, u2, P, and SOC
 u0_values = [value(model.u0[i]) for i in model.IndexSet]
-u1_values = [value(model.u1[i]) for i in model.IndexSet]
-u2_values = [value(model.u2[i]) for i in model.IndexSet]
  
-SOC_values = [value(model.SOC[i]) for i in model.IndexSet]
-SOC_percent = [val * 100 for val in SOC_values]
+is_start_values = [value(model.is_start[i]) for i in model.IndexSet]
+#SOC_percent = [val * 100 for val in SOC_values]
 
 
 # Create x-axis values (assuming index set)
@@ -105,7 +110,7 @@ x_values = list(range(len(u0_values)))
 PV__values = list(range(len(PV)))
 
 #Declare Rows, columns and Figure size of subplots
-fig, axs = plt.subplots(nrows=3, ncols=1, figsize=(10, 10))
+fig, axs = plt.subplots(nrows=1, ncols=1, figsize=(10, 10))
 
 # Plot u0, u1, u2, P, and SOC
 axs[0].plot(x_values, u0_values, label='PV to Demand')
@@ -126,10 +131,10 @@ axs[2].set_title('Power Generation & Consumption')
 
 # Add legend to the first subplot
 axs[0].legend()
-axs[2].legend()
 
 
 # Adjust layout and display the plot
 plt.subplots_adjust(hspace=0.5)
 plt.show()
 
+'''
