@@ -7,26 +7,25 @@ from pyomo.opt import SolverFactory
 import pandas as pd
 import matplotlib.pyplot as plt   
 
-# Define file paths
-pv_file_path = "C:\\Users\\azizul\\Desktop\\hyBit\\Project\\sample\\pv_1m.csv"
-wm_file_path = "C:\\Users\\azizul\\Desktop\\hyBit\\Project\\sample\\wm_1m.csv"
-
+pv_file_path = "C:\\Users\\azizul\\Desktop\\hyBit\\Project\\Model\\Data\\Output\\PV.csv"
+dem_file_path = "C:\\Users\\azizul\\Desktop\\hyBit\\Project\\Model\\Data\\Output\\Demand.csv"
 # Load data from CSV files
 pv_data = pd.read_csv(pv_file_path, header=None)
-wm_data = pd.read_csv(wm_file_path, header=None)
-
-# Extract WM1 data
-device = {'WM1': wm_data.iloc[:, 0].tolist()}
+dem_data = pd.read_csv(dem_file_path, header=None)
 
 # Define Pyomo model
 model = ConcreteModel()
 
-Gen_neg = pv_data[1].to_list()
-PV =  [- x for x in Gen_neg]       
-D = [3000.0] * len(PV)    #consumption
+Gen_ = pv_data[2].to_list()
+PV =  [ x for x in Gen_]    
+#D = [30000.0] * len(PV)
+Cons_ = dem_data[8].to_list()  #Random generated demand (30,000-80,000)
+D =  [  x for x in Cons_]  
+
+
 #Define Buy and Sell price
 priceImport = 0.23 / 1000 / 60
-priceExport = 0.06 / 1000 / 60
+priceExport = 0.06 / 1000 / 60 
 Cbat = 5000 * 60       #Capacity of the Battery
 eff = 0.9              #Efficiency of the Battery
 h = 1.0
@@ -37,19 +36,19 @@ n = len(PV)
 model.IndexSet = RangeSet(0, n)
 
 # Initialize indexed variables
-model.u0 = Var(model.IndexSet, within = NonNegativeReals, initialize = 0)
+model.u0 = Var(model.IndexSet, bounds=(0, 50000), within = NonNegativeReals, initialize = 0) #hb-50,000
 model.u1 = Var(model.IndexSet, bounds=(0, Cbat), within = NonNegativeReals, initialize = 0 )
 model.u2 = Var(model.IndexSet, bounds=(0, Cbat), within = NonNegativeReals, initialize = 0)
-model.u3 = Var(model.IndexSet, within = NonNegativeReals, initialize = 0)
-model.SOC = Var(model.IndexSet, bounds=(0.2, 0.9), within = NonNegativeReals, initialize = 0.5)
-model.grid_in = Var(model.IndexSet, within = NonNegativeReals, initialize = 0)
-model.grid_out = Var(model.IndexSet, within = NonNegativeReals, initialize = 0)
+model.u3 = Var(model.IndexSet, bounds=(0, Cbat), within = NonNegativeReals, initialize = 0)
+model.SOC = Var(model.IndexSet, bounds=(0.2, 0.8), within = NonNegativeReals, initialize = 0.5)
+model.grid_in = Var(model.IndexSet, bounds=(0, 50000), within = NonNegativeReals, initialize = 0) #hb-50,000
+model.grid_out = Var(model.IndexSet, bounds=(0, 50000), within = NonNegativeReals, initialize = 0) #hb-50,000
 
 # Add constraints
 model.const = ConstraintList()
 
 
-model.const.add(model.SOC[0] == 0.8)
+model.const.add(model.SOC[0] == 0.5)
 model.const.add(model.SOC[n- 1] == 0.4)
 #Loop 0 to n-1
 for i in range(0, n):
@@ -57,10 +56,10 @@ for i in range(0, n):
     model.const.add(model.u0[i] + model.u1[i] + model.grid_in[i] - PV[i]<= 0)
     model.const.add(model.u0[i] + model.u2[i] +model.grid_out[i] - D[i]<= 0)
     model.const.add(model.u1[i] * model.u2[i] == 0)
-    
     model.const.add(PV[i] - model.u0[i] - model.u1[i] == model.grid_in[i])
     model.const.add(D[i] - model.u0[i] - model.u2[i] == model.grid_out[i])
-    #model.const.add( (PV[i] - model.u1[i] - model.u0[i])- (D[i] - model.u0[i] - model.u2[i]) == model.u3[i])
+
+    
     
     
 
@@ -75,7 +74,7 @@ for i in range(0, n-1):
 # Set objective
 def objective_rule(model):
     return sum(
-        (D[i] - model.u0[i] - model.u2[i]+ model.u3[i]) * priceImport - (PV[i] - model.u0[i] - model.u1[i]) * priceExport 
+        ((D[i] - model.u0[i] - model.u2[i])+ model.u3[i]) * priceImport - (PV[i] - model.u0[i] - model.u1[i]) * priceExport 
         for i in range(0, n)
     )
 model.obj = Objective(rule=objective_rule, sense=minimize)
@@ -123,11 +122,11 @@ PV__values = list(range(0, n))
 fig, axs = plt.subplots(nrows=5, ncols=1, figsize=(10, 10))
 
 # Plot u0, u1, u2, P, and SOC
-axs[0].plot(x_values, u0_values, label='PV')
-axs[0].plot(x_values, u1_values, label='Battery Charge from PV')
-axs[0].plot(x_values, u2_values, label='Battery Discharge')
+axs[0].plot(x_values, u0_values, label='PV to Demand')
+axs[0].plot(x_values, u1_values, label='Battery Charged from PV')
 
-axs[0].set_title('PV to Demand, Battery Charge and Discharge')
+
+axs[0].set_title('PV to Demand, Battery Charge from PV')
 
 
 # Plot on the second subplot
@@ -156,5 +155,5 @@ axs[3].legend()
 axs[4].legend()
 
 # Adjust layout and display the plot
-plt.subplots_adjust(hspace=0.5)
+plt.subplots_adjust(hspace=1.5)
 plt.show()
