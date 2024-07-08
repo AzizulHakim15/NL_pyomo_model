@@ -7,8 +7,8 @@ from pyomo.opt import SolverFactory
 import pandas as pd
 import matplotlib.pyplot as plt   
 
-pv_file_path = "C:\\Users\\azizul\\Desktop\\hyBit\\Project\\Model\\Data\\Output\\PV.csv"
-dem_file_path = "C:\\Users\\azizul\\Desktop\\hyBit\\Project\\Model\\Data\\Output\\Demand.csv"
+pv_file_path = "C:\\Users\\azizul\\Desktop\\hyBit\\Project\\Model\\Data\\Output\\PV1y.csv"
+dem_file_path = "C:\\Users\\azizul\\Desktop\\hyBit\\Project\\Model\\Data\\Output\\Demand1y.csv"
 # Load data from CSV files
 pv_data = pd.read_csv(pv_file_path, header=None)
 dem_data = pd.read_csv(dem_file_path, header=None)
@@ -16,7 +16,7 @@ dem_data = pd.read_csv(dem_file_path, header=None)
 # Define Pyomo model
 model = ConcreteModel()
 
-Gen_ = pv_data[2].to_list()
+Gen_ = pv_data[4].to_list()
 PV =  [ x for x in Gen_]    
 #D = [30000.0] * len(PV)
 Cons_ = dem_data[8].to_list()  #Random generated demand (30,000-80,000)
@@ -81,7 +81,7 @@ model.obj = Objective(rule=objective_rule, sense=minimize)
 
 
 # Solve the model...
-solver = SolverFactory('gurobi')
+solver = SolverFactory('scip')
 
 # Specify the SCIP options
 
@@ -97,7 +97,7 @@ print(value(model.obj))
 
 #Solver time
 solver_time = results.solver.time
-
+print('Solver time =', solver_time)
 
 ####### PLot #######
 
