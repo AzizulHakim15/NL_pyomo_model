@@ -9,23 +9,23 @@ import numpy as np
 import matplotlib.pyplot as plt   
 
 # Define file paths
-pv_file_path = "C:\\Users\\azizul\\Desktop\\hyBit\\Project\\sample\\pv_1m.csv"
-wm_file_path = "C:\\Users\\azizul\\Desktop\\hyBit\\Project\\sample\\wm_1m.csv"
+pv_file_path = "C:\\Users\\azizul\\Desktop\\hyBit\\Project\\Model\\Data\\Output\\PV1d.csv"
+wm_file_path = "C:\\Users\\azizul\\Documents\\GitHub\\NL_pyomo_model\\wm_1m.csv"
 
 # Load data from CSV files
 pv_data = pd.read_csv(pv_file_path, header=None)
 wm_data = pd.read_csv(wm_file_path, header=None)
 #Timestamp
-timestamps = pd.date_range('2024-01-01 00:00:00', periods=1441, freq='T')
+timestamps = pd.date_range('2024-01-01 00:00:00', periods=1440, freq='T')
 
 
 # Define Pyomo model
 model = ConcreteModel()
-Gen_neg = pv_data[1].to_list()
-PV =  [- x for x in Gen_neg]    
+Gen_neg = pv_data[4].to_list()
+PV =  [ x for x in Gen_neg]    
 Gen_wm = wm_data[1].to_list()
 Device =  [ x for x in Gen_wm]    #Device Consumption
-D = [1000.0] *( len(PV))   #Basic consumption
+D = [20000.0] *( len(PV))   #Basic consumption
 
 #Define Buy and Sell price
 priceImport = 0.23 / 1000 / 60
@@ -39,12 +39,11 @@ l = len(Device)
 
 # Create variables in the model
 model.IndexSet = RangeSet(0,n)
-
+#model.D = RangeSet(0,l)
 # Initialize indexed variables
-model.u0 = Var(model.IndexSet, bounds=(0, 1e20), within = NonNegativeIntegers, initialize = 0)
+model.u0 = Var(model.IndexSet, bounds=(0, 1e20), within = NonNegativeReals, initialize = 0)
 model.C = Var(model.IndexSet, bounds=(0, 1e20), within = NonNegativeReals, initialize = 0)
-model.is_start = Var(model.IndexSet, bounds =(0.0, 1.0), within = NonNegativeReals, initialize = 0)
-model.bin = Var(model.IndexSet, bounds=(0,1), within = Binary, initialize = 0)
+model.is_start = Var(model.IndexSet, bounds =(0, 1), within = Binary)
 
 
 
@@ -64,62 +63,45 @@ model.const = ConstraintList()
 #Loop 0 to n-1
 for i in range(0, n):
     
-    model.const.add( PV[i] - model.u0[i] >= 0)
+    model.const.add( model.u0[i] - PV[i] <= 0)
     model.const.add(  model.u0[i] - model.C[i] <= 0)
     
+model.const.add( sum(model.is_start[i] for i in model.IndexSet) == 10)   
 
-
-
-#####################################################
-#for i in range(0,n):
-#    sum(model.is_start[i])==1
-#    #model.is_start[i].fix(1)
-
-def start_constraint_rule(model):
-    return sum(model.is_start[i] for i in model.IndexSet) == 1
-model.start_constraint = Constraint(rule=start_constraint_rule)
-
+######################  Working  ###############################
 for i in range(n-l, n):
-   model.is_start[i] == 0
+   model.const.add(model.is_start[i] == 0)
 
 
+'''#####################################################
+
+M=100000
+
+def conditional_constraint_rule(model, i):
+    # If device i is started (model.s[i] == 1), enforce x[i] >= 10
+    return model.Device[i] >= Device[i] - M * (1 - model.is_start[i])
+
+model.conditional_constraint = Constraint(model.D, rule=conditional_constraint_rule)
+'''
 ######################################################
 
-
-
-temp= 0
-# Case 1: i in {0, ..., l-1}
-for i in range(0,l):
-    temp += sum(model.bin[i - j] * Device[j] for j in range(0,i+1))  
-    model.const.add(model.C[i] == D[i] + temp)
-    #model.C[i] = D[i] + temp
-
-# Case 2: i in {l, ..., n-1}
+# Case 1: i in {l, ..., n-1}
 for i in range(l, n):
-    temp += sum(model.bin[i - j] * Device[j] for j in range(0,l))
-    model.const.add(model.C[i] == D[i] + temp)
-    #model.C[i] = D[i] + temp
-'''
-temp= 0
-for i in range(0,n):
+    model.const.add(model.C[i] == D[i] + sum(model.is_start[i - j] * Device[j] for j in range(0,l)))
     
-    # Case 2: i in {0, ..., l-1}
-    for i in range(0,l):
-        temp += sum(model.bin[i - j] * Device[j] for j in range(0,i+1))  
-        model.const.add(model.C[i] == D[i] + temp)
-        #model.C[i] = D[i] + temp
-
-    #temp= 0
-    # Case 1: i in {l, ..., n-1}
-    for i in range(l, n):
-       temp += sum(model.bin[i - j] * Device[j] for j in range(0,l))
-       model.const.add(model.C[i] == D[i] + temp)
-       #model.C[i] = D[i] + temp    
+# Case 2: i in {0, ..., l-1}
+for i in range(0, l): 
+    model.const.add(model.C[i] == D[i] + sum(model.is_start[i - j] * Device[j] for j in range(0,i+1)))
 
 
-'''
+    
 
+#if (model.is_start[i] for i in model.IndexSet) ==1 :
+#    print(model.is_start[i])
+#print(value(model.C[i]))
+################################################################################################# 
 
+############################################################
 # Solve the model...
 solver = SolverFactory('gurobi')
 solver.options['NonConvex'] = 2  # Set NonConvex parameter to 2
@@ -133,31 +115,55 @@ print(value(model.obj))
 
 ####### PLot #######
 
-#Extract values of u0, u1, u2, P, and SOC
+#Extract values of u0, C, P, and SOC
 u0_values = [value(model.u0[i]) for i in model.IndexSet]
-u0_values = u0_values[:len(timestamps)]
 C_values = [value(model.C[i]) for i in model.IndexSet]
-C_values = C_values[:len(timestamps)]
+print(C_values)
 is_start_values = [value(model.is_start[i]) for i in model.IndexSet]
-is_start_values = is_start_values[:len(timestamps)]
-#device_values = [value(Device)]
-device_values = timestamps[:len(Device)]
+#temp_values = [value(temp[i]) for i in model.IndexSet]
+
+#device_values = [value(Device[i]) for i in model.IndexSet]
+
+#temp_values = temp_values[:len(timestamps)]
+#print(temp_values)
 
 
+# Create x-axis values (assuming index set)
+x_values = list(range(0, len(u0_values)))
+PV__values = list(range(0, n))
+c_val = list(range(0, 96))
+D_val = list(range(0, l))
+#t_val= list(range(len(temp)))
+#Declare Rows, columns and Figure size of subplots
+fig, axs = plt.subplots(nrows=2, ncols=1, figsize=(10, 10))
 
-plt.plot(timestamps, PV, label='PV')
-plt.fill_between(timestamps, PV, color='skyblue', alpha=0.4)
-plt.plot(timestamps, C_values, label='Overall Consumption')
-plt.fill_between(timestamps, C_values, color='orange', alpha=0.4)
-#plt.plot(timestamps, D, label='Basic Consumption')
-#plt.fill_between(timestamps, D, color='yellow', alpha=0.4)
-plt.plot(timestamps, u0_values, label='self Consumption')
-plt.fill_between(timestamps, u0_values, color='pink', alpha=0.4)
-plt.plot(device_values, Device, label='Device')
-plt.fill_between(device_values, Device, color='purple', alpha=0.4)
+# Plot u0, u1, u2, P, and SOC
+axs[0].plot(x_values, u0_values, label='Self Consumed')
+axs[0].plot(PV__values, PV, label='PV')
+axs[0].plot(PV__values, D, label='Basic demand')
+#axs[0].plot(D_val, Device, label='Device')
+#axs[0].plot(t_val, temp_values, label='Device')
+axs[0].plot(c_val, C_values, label='Overall consumptions')
+axs[0].set_title('PV , Basic Demand, self consumed and overal consumptions')
+axs[0].fill_between(x_values, u0_values, color='blue', alpha=0.6)
+axs[0].fill_between(PV__values, D, color='green', alpha=0.2)
+axs[0].fill_between(PV__values, PV, color='orange', alpha=0.2)
+axs[0].fill_between(c_val, C_values, color='red', alpha=0.1)
+#axs[0].fill_between(D_val, Device, color='red', alpha=0.1)
+# Plot on the second subplot
 
-plt.legend()
-plt.gca().xaxis.set_major_locator(plt.matplotlib.dates.HourLocator(interval= 1))
-plt.gca().xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter( '%H'))
 
+axs[1].plot(c_val, C_values, label='Overall consumptions')
+axs[1].fill_between(c_val, C_values, color='blue', alpha=0.4)
+#axs[1].plot(D_val, Device, label='Device')
+
+
+# Add legend to the first subplot
+axs[0].legend()
+axs[1].legend()
+
+# Adjust layout and display the plot
+plt.subplots_adjust(hspace=1.5)
 plt.show()
+
+
