@@ -95,11 +95,11 @@ solver = SolverFactory('scip')
 #solver.options['limits/memory'] = 8796093022207
 
 ##################################################################################
-# Specify the SCIP options
+# Specify the SCIP options (only for Linux to specify WORHP as NLP solver)
 
 #scip_options = {'settings': "/home/azizul/Downloads/scip-9.0.1"}
+##################################################################################
 
-# Solve the model with the specified parameter file
 results = solver.solve(model, tee=True)#, options=scip_options)
 #model.display()
 #model.pprint()
@@ -111,7 +111,8 @@ print(value(model.obj))
 solver_time = results.solver.time
 print('Solver time =', solver_time)
 
-####### PLot #######
+
+############################ PLot ###################################################
 
 #Extract values of u0, u1, u2, PV, and SOC
 
@@ -136,7 +137,6 @@ fig, axs = plt.subplots(nrows=5, ncols=1, figsize=(10, 10))
 # Plot u0, u1, u2, P, and SOC
 axs[0].plot(x_values, u0_values, label='PV to Demand')
 axs[0].plot(x_values, u1_values, label='Battery Charged from PV')
-
 
 axs[0].set_title('PV to Demand, Battery Charge from PV')
 
