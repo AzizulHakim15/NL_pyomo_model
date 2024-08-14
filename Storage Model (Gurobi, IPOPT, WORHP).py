@@ -83,6 +83,18 @@ model.obj = Objective(rule=objective_rule, sense=minimize)
 # Solve the model...
 solver = SolverFactory('scip')
 
+##################################################################################
+# Gap, Memory limitss and Time limit is only for 6 months and 1 year of data
+
+# Set the relative gap tolerance (for example, 10%)
+#solver.options['limits/gap'] = 0.1
+
+# Set the time limit to 3 hours (10800 seconds)
+#solver.options['limits/time'] = 10800
+# Set the memory limit to 8796093022207 mb
+#solver.options['limits/memory'] = 8796093022207
+
+##################################################################################
 # Specify the SCIP options
 
 #scip_options = {'settings': "/home/azizul/Downloads/scip-9.0.1"}
