@@ -7,8 +7,8 @@ from pyomo.opt import SolverFactory
 import pandas as pd
 import matplotlib.pyplot as plt   
 
-pv_file_path = "C:\\Users\\azizul\\Desktop\\hyBit\\Project\\Model\\Data\\Output\\PV3m.csv"
-dem_file_path = "C:\\Users\\azizul\\Desktop\\hyBit\\Project\\Model\\Data\\Output\\Demand3m.csv"
+pv_file_path = "C:\\Users\\azizul\\Desktop\\hyBit\\Project\\Model\\Data\\Output\\PV1m.csv"
+dem_file_path = "C:\\Users\\azizul\\Desktop\\hyBit\\Project\\Model\\Data\\Output\\Demand1m.csv"
 # Load data from CSV files
 pv_data = pd.read_csv(pv_file_path, header=None)
 dem_data = pd.read_csv(dem_file_path, header=None)
