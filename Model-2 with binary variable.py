@@ -9,8 +9,8 @@ import numpy as np
 import matplotlib.pyplot as plt   
 
 # Define file paths
-pv_file_path = "/media/azizul/TANVIR/windows/New folder/data/PV1d.csv"
-wm_file_path = "/media/azizul/TANVIR/windows/New folder/wm_1m.csv"
+pv_file_path = "C:\\Users\\azizul\\Desktop\\hyBit\\Project\\Model\\Data\\Output\\PV1m.csv"
+wm_file_path = "C:\\Users\\azizul\\Desktop\\hyBit\\Project\\Model\\Data\\Output\\wm_1m.csv"
 
 # Load data from CSV files
 pv_data = pd.read_csv(pv_file_path, header=None)
@@ -66,7 +66,7 @@ for i in range(0, n):
     model.const.add( model.u0[i] - PV[i] <= 0)
     model.const.add(  model.u0[i] - model.C[i] <= 0)
     
-model.const.add( sum(model.is_start[i] for i in model.IndexSet) == 1)   
+model.const.add( sum(model.is_start[i] for i in model.IndexSet) == 30)   
 
 
 for i in range(n-l, n):
@@ -88,7 +88,7 @@ for i in range(0, l):
 
 
 # Solve the model...
-solver = SolverFactory('gurobi')
+solver = SolverFactory('scip')
 # Specify the SCIP options
 
 #scip_options = {'settings': "/home/azizul/Downloads/scip-9.0.1"} 
