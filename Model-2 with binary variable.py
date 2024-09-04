@@ -66,7 +66,7 @@ for i in range(0, n):
     model.const.add( model.u0[i] - PV[i] <= 0)
     model.const.add(  model.u0[i] - model.C[i] <= 0)
     
-model.const.add( sum(model.is_start[i] for i in model.IndexSet) == 30)   
+model.const.add( sum(model.is_start[i] for i in model.IndexSet) == 730)   
 
 
 for i in range(n-l, n):
@@ -88,7 +88,7 @@ for i in range(0, l):
 
 
 # Solve the model...
-solver = SolverFactory('scip')
+solver = SolverFactory('gurobi')
 # Specify the SCIP options
 
 #scip_options = {'settings': "/home/azizul/Downloads/scip-9.0.1"} 
@@ -139,8 +139,8 @@ axs[0].plot(PV__values, D, label='Basic demand')
 #axs[0].plot(t_val, temp_values, label='Device')
 axs[0].plot(c_val, C_values, label='Overall consumptions')
 axs[0].set_title('PV , Basic Demand, self consumed and overall consumptions')
-axs[0].fill_between(x_values, u0_values, color='blue', alpha=0.6)
-axs[0].fill_between(PV__values, D, color='green', alpha=0.2)
+axs[0].fill_between(x_values, u0_values, color='blue', alpha=0.9)
+axs[0].fill_between(PV__values, D, color='green', alpha=0.3)
 axs[0].fill_between(PV__values, PV, color='orange', alpha=0.2)
 axs[0].fill_between(c_val, C_values, color='red', alpha=0.1)
 #axs[0].fill_between(D_val, Device, color='red', alpha=0.1)

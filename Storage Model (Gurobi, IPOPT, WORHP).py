@@ -66,7 +66,7 @@ for i in range(0, n):
 # Loop 0 to n-2
 for i in range(0, n-1):
 
-    model.const.add((model.SOC[i + 1]- model.SOC[i] - (h / 2) * (((model.u1[i + 1] + model.u3[i + 1] - model.u2[i + 1]) * eff )/ Cbat + ((model.u1[i] + model.u3[i + 1] - model.u2[i]) * eff )/ Cbat)) == 0)
+    model.const.add((model.SOC[i + 1]- model.SOC[i] - (h / 2) * (((model.u1[i + 1] + model.u3[i + 1] - model.u2[i + 1]) * eff )/ Cbat + ((model.u1[i] + model.u3[i+1] - model.u2[i]) * eff )/ Cbat)) == 0)
 
 #Grid_values = 0
 
@@ -81,7 +81,7 @@ model.obj = Objective(rule=objective_rule, sense=minimize)
 
 
 # Solve the model...
-solver = SolverFactory('scip')
+solver = SolverFactory('gurobi')
 
 ##################################################################################
 # Gap, Memory limits and Time limit is only for 6 months and 1 year of data
