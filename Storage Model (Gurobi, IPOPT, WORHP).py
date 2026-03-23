@@ -7,8 +7,8 @@ from pyomo.opt import SolverFactory
 import pandas as pd
 import matplotlib.pyplot as plt   
 
-pv_file_path = "C:\\Users\\azizul\\Desktop\\hyBit\\Project\\Model\\Data\\Output\\PV1m.csv"
-dem_file_path = "C:\\Users\\azizul\\Desktop\\hyBit\\Project\\Model\\Data\\Output\\Demand1m.csv"
+pv_file_path = "PV1m.csv"
+wm_file_path = "wm_1m.csv"
 # Load data from CSV files
 pv_data = pd.read_csv(pv_file_path, header=None)
 dem_data = pd.read_csv(dem_file_path, header=None)
@@ -57,11 +57,7 @@ for i in range(0, n):
     model.const.add(model.u0[i] + model.u2[i] +model.grid_out[i] - D[i]<= 0)
     model.const.add(model.u1[i] * model.u2[i] == 0)
     model.const.add(PV[i] - model.u0[i] - model.u1[i] == model.grid_in[i])
-    model.const.add(D[i] - model.u0[i] - model.u2[i] == model.grid_out[i])
-
-    
-    
-    
+    model.const.add(D[i] - model.u0[i] - model.u2[i] == model.grid_out[i]) 
 
 # Loop 0 to n-2
 for i in range(0, n-1):
@@ -69,8 +65,6 @@ for i in range(0, n-1):
     model.const.add((model.SOC[i + 1]- model.SOC[i] - (h / 2) * (((model.u1[i + 1] + model.u3[i + 1] - model.u2[i + 1]) * eff )/ Cbat + ((model.u1[i] + model.u3[i+1] - model.u2[i]) * eff )/ Cbat)) == 0)
 
 #Grid_values = 0
-
-
 # Set objective
 def objective_rule(model):
     return sum(
@@ -79,34 +73,13 @@ def objective_rule(model):
     )
 model.obj = Objective(rule=objective_rule, sense=minimize)
 
-
 # Solve the model...
 solver = SolverFactory('gurobi')
-
-##################################################################################
-# Gap, Memory limits and Time limit is only for 6 months and 1 year of data
-
-# Set the relative gap tolerance (for example, 10%)
-#solver.options['limits/gap'] = 0.1
-
-# Set the time limit to 3 hours (10800 seconds)
-#solver.options['limits/time'] = 10800
-# Set the memory limit to 8796093022207 mb
-#solver.options['limits/memory'] = 8796093022207
-
-##################################################################################
-# Specify the SCIP options (only for Linux to specify WORHP as NLP solver)
-
-#scip_options = {'settings': "/home/azizul/Downloads/scip-9.0.1"}
-##################################################################################
-
 results = solver.solve(model, tee=True)#, options=scip_options)
 #model.display()
 #model.pprint()
 #results.write()
 print(value(model.obj))
-
-
 #Solver time
 solver_time = results.solver.time
 print('Solver time =', solver_time)
