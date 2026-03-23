@@ -9,15 +9,14 @@ import numpy as np
 import matplotlib.pyplot as plt   
 
 # Define file paths
-pv_file_path = "C:\\Users\\azizul\\Desktop\\hyBit\\Project\\Model\\Data\\Output\\PV1m.csv"
-wm_file_path = "C:\\Users\\azizul\\Desktop\\hyBit\\Project\\Model\\Data\\Output\\wm_1m.csv"
+pv_file_path = "PV1m.csv"
+wm_file_path = "wm_1m.csv"
 
 # Load data from CSV files
 pv_data = pd.read_csv(pv_file_path, header=None)
 wm_data = pd.read_csv(wm_file_path, header=None)
 #Timestamp
 #timestamps = pd.date_range('2024-01-01 00:00:00', periods=1440, freq='T')
-
 
 # Define Pyomo model
 model = ConcreteModel()
@@ -44,8 +43,6 @@ model.IndexSet = RangeSet(0,n)
 model.u0 = Var(model.IndexSet, bounds=(0, 1e20), within = NonNegativeReals, initialize = 0)
 model.C = Var(model.IndexSet, bounds=(0, 1e20), within = NonNegativeReals, initialize = 0)
 model.is_start = Var(model.IndexSet, bounds =(0, 1), within = Binary)
-
-
 
 # Set objective
 def objective_rule(model):
@@ -83,17 +80,8 @@ for i in range(l, n):
 for i in range(0, l): 
     model.const.add(model.C[i] == D[i] + sum(model.is_start[i - j] * Device[j] for j in range(0,i+1)))
 
-
-    
-
-
 # Solve the model...
 solver = SolverFactory('gurobi')
-# Specify the SCIP options
-
-#scip_options = {'settings': "/home/azizul/Downloads/scip-9.0.1"} 
-
-# Solve the model with the specified parameter file
 results = solver.solve(model, tee=True)#, options=scip_options)
 #model.display()
 #model.pprint()
