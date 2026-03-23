@@ -7,10 +7,8 @@ import numpy as np
 import matplotlib.pyplot as plt   
 
 # Define file paths
-wm_file_path = "C:\\Users\\azizul\\Desktop\\hyBit\\Project\\Model\\Data\\Output\\wm_1m.csv"
-
+wm_file_path = "wm_1m.csv"
 # Load data from CSV files
-
 wm_data = pd.read_csv(wm_file_path, header=None)
 Gen_wm = wm_data[1].to_list()
 Device =  [ x for x in Gen_wm]  
